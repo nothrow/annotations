@@ -2,16 +2,21 @@
 
 namespace code_annotations.Generator
 {
-    internal readonly struct TypeInformation
+    internal class TypeInformation
     {
+        public TypeInformation()
+        {
+
+        }
         public TypeInformation(string ns, string name)
         {
             Namespace = ns;
             Name = name;
         }
 
-        public string Namespace { get; }
-        public string Name { get; }
+        public string Namespace { get; set; }
+        public string Name { get; set; }
+        public string[] Comment { get; set; }
 
         private sealed class NameEqualityComparer : IEqualityComparer<TypeInformation>
         {

@@ -4,15 +4,18 @@ namespace code_annotations.Generator
 {
     internal class NamespaceHierarchy
     {
-        public NamespaceHierarchy(string name, IReadOnlyCollection<NamespaceHierarchy> namespaces, IReadOnlyCollection<TypeInformation> types)
+        public NamespaceHierarchy(){}
+
+        public NamespaceHierarchy(string namespaceName, IReadOnlyCollection<NamespaceHierarchy> namespaces, IReadOnlyCollection<TypeInformation> types)
         {
-            Name = name;
+            NamespaceName = namespaceName;
             Namespaces = namespaces;
             Types = types;
         }
 
-        public string Name { get; }
-        public IReadOnlyCollection<NamespaceHierarchy> Namespaces { get; }
-        public IReadOnlyCollection<TypeInformation> Types { get; }
+        public string NamespaceName { get; set; }
+        public string[] Comment { get; set; }
+        public IReadOnlyCollection<NamespaceHierarchy> Namespaces { get; set; }
+        public IReadOnlyCollection<TypeInformation> Types { get; set; }
     }
 }

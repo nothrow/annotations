@@ -48,8 +48,6 @@ namespace code_annotations.Generator
         {
             var subNses = allNamespaces.Keys.Where(x => IsDirectlyUnder(x, currentNs));
 
-
-
             foreach (var subNs in subNses)
             {
                 var nh = new List<NamespaceHierarchy>();

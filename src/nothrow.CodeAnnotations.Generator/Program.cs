@@ -1,6 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.ComponentModel;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text.Json;
@@ -39,6 +42,8 @@ namespace code_annotations.Generator
                 {
                     case "scaffold":
                         return Scaffold();
+                    case "generate":
+                        return Generate();
                     default:
                         throw new ArgumentOutOfRangeException();
                 }
@@ -58,15 +63,72 @@ namespace code_annotations.Generator
             return 0;
         }
 
+        private int Generate()
+        {
+            if (string.IsNullOrEmpty(_commandLineSettings.OutputDirectory))
+                throw new CommandLineSettingsInvalidException("Missing -o parameter");
+            if (string.IsNullOrEmpty(_commandLineSettings.AnnotationDirectory))
+                throw new CommandLineSettingsInvalidException("Missing -s parameter");
+
+            var input = Path.GetFullPath(_commandLineSettings.AnnotationDirectory);
+            var output = Path.GetFullPath(_commandLineSettings.OutputDirectory);
+
+            var typeinfoFile = Path.Combine(input, "typeinfo.json");
+            if (!File.Exists(typeinfoFile))
+                throw new CommandLineSettingsInvalidException($"There is no {typeinfoFile}. Is it really annotation directory?");
+
+            Directory.CreateDirectory(output);
+
+            var types = JsonSerializer.Deserialize<NamespaceHierarchy>(File.ReadAllText(typeinfoFile));
+
+            ReadNamespaceInformation(input, types, ImmutableArray<string>.Empty);
+
+            File.WriteAllText(Path.Combine(output, "db.json"), "window.annotationInfo = " + JsonSerializer.Serialize(types) + ";");
+
+            return 0;
+        }
+
+        private void ReadNamespaceInformation(string input, NamespaceHierarchy types, ImmutableArray<string> comments)
+        {
+            _logger.LogInformation("Processing {namespace}", types.NamespaceName);
+
+            var path = Path.Combine(input, types.NamespaceName);
+
+            var nsInfo = new FileInfo(Path.Combine(path, "_namespace.md"));
+            if (nsInfo.Exists && nsInfo.Length > 0)
+            {
+                comments = comments.Add(File.ReadAllText(nsInfo.FullName));
+            }
+
+            types.Comment = comments.ToArray();
+
+            foreach (var type in types.Types)
+            {
+                var typeInfo = new FileInfo(Path.Combine(path, GetFileNameForType(type.Name)));
+                var fcomments = comments;
+                if (typeInfo.Exists && typeInfo.Length > 0)
+                {
+                    fcomments = fcomments.Add(File.ReadAllText(typeInfo.FullName));
+                }
+
+                type.Comment = fcomments.ToArray();
+            }
+
+            foreach (var ns in types.Namespaces)
+            {
+                ReadNamespaceInformation(path, ns, comments);
+            }
+        }
+
         private int Scaffold()
         {
             if (string.IsNullOrEmpty(_commandLineSettings.InputAssembly))
                 throw new CommandLineSettingsInvalidException("Missing -i parameter");
-            if (string.IsNullOrEmpty(_commandLineSettings.ScaffoldingDirectory))
+            if (string.IsNullOrEmpty(_commandLineSettings.AnnotationDirectory))
                 throw new CommandLineSettingsInvalidException("Missing -s parameter");
 
             var input = Path.GetFullPath(_commandLineSettings.InputAssembly);
-            var output = Path.GetFullPath(_commandLineSettings.ScaffoldingDirectory);
+            var output = Path.GetFullPath(_commandLineSettings.AnnotationDirectory);
 
             _logger.LogInformation("Generating scaffold for assembly {assembly} to {scaffoldDir}", input, output);
 
@@ -81,9 +143,15 @@ namespace code_annotations.Generator
             return 0;
         }
 
+        private static string GetFileNameForType(string type)
+        {
+            var safeTypeName = type.Replace('<', '_').Replace('>', '_');
+            return "T_" + safeTypeName + ".md";
+        }
+
         private void GenerateNamespaceDirectories(string path, NamespaceHierarchy ns)
         {
-            var myPath = Path.Combine(path, ns.Name);
+            var myPath = Path.Combine(path, ns.NamespaceName);
             var myNsInfoPath = Path.Combine(myPath, "_namespace.md");
             Directory.CreateDirectory(myPath);
 
@@ -94,7 +162,7 @@ namespace code_annotations.Generator
                 return;
             }
 
-            _logger.LogInformation("Generating directory for namespace {namespace}", ns.Name);
+            _logger.LogInformation("Generating directory for namespace {namespace}", ns.NamespaceName);
 
 
             File.WriteAllText(myNsInfoPath, "");
@@ -106,9 +174,7 @@ namespace code_annotations.Generator
 
             foreach (var type in ns.Types)
             {
-                var safeTypeName = type.Name.Replace('<', '_').Replace('>', '_');
-
-                var typeFile = Path.Combine(myPath, "T_" + safeTypeName + ".md");
+                var typeFile = Path.Combine(myPath, GetFileNameForType(type.Name));
 
                 if (!File.Exists(typeFile))
                 {
@@ -127,12 +193,19 @@ namespace code_annotations.Generator
             Console.WriteLine("Usage: ");
             Console.WriteLine("dotnet annotation -(h|?) - shows this help");
             Console.WriteLine();
-            Console.WriteLine("dotnet annotation scaffold [-i assembly.dll] [-s scaffold_directory]");
+            Console.WriteLine("dotnet annotation scaffold [-i assembly.dll] [-s annotation_directory]");
             Console.WriteLine(" Scans the assembly.dll for all classes/namespaces, and generates");
             Console.WriteLine(" scaffolding for the annotations in output_directory.");
             Console.WriteLine("");
-            Console.WriteLine(" -i assembly.dll       - REQUIRED      - name of the assembly to analyze");
-            Console.WriteLine(" -s scaffold_directory - default 'out' - where to put the scaffolding");
+            Console.WriteLine(" -i assembly.dll         - REQUIRED      - name of the assembly to analyze");
+            Console.WriteLine(" -s annotation_directory - default 'out' - where to put the scaffolding");
+            Console.WriteLine("");
+            Console.WriteLine("dotnet annotation generate [-s annotation_directory] [-o output_directory]");
+            Console.WriteLine(" Scans the assembly.dll for all classes/namespaces, and generates");
+            Console.WriteLine(" scaffolding for the annotations in output_directory.");
+            Console.WriteLine("");
+            Console.WriteLine(" -s annotation_directory - REQUIRED      - where to read the annotations from. previously generated by scaffold");
+            Console.WriteLine(" -o output_directory     - REQUIRED      - where to put the output (html)");
 
             return 0;
         }

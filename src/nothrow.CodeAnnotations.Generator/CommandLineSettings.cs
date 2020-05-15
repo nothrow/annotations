@@ -30,6 +30,10 @@ namespace code_annotations.Generator
                                     Task = "scaffold";
                                     state = 1;
                                     break;
+                                case "generate":
+                                    Task = "generate";
+                                    state = 2;
+                                    break;
                                 default:
                                     throw new CommandLineSettingsInvalidException($"Unexpected argument '{arg}'");
                             }
@@ -40,29 +44,52 @@ namespace code_annotations.Generator
                             {
 
                                 case "-s":
-                                    state = 2;
+                                    state = 12;
                                     break;
                                 case "-i":
-                                    state = 3;
+                                    state = 13;
                                     break;
                                 default:
                                     throw new CommandLineSettingsInvalidException($"Unexpected argument '{arg}'");
                             }
                             break;
-                        case 2:
-                            ScaffoldingDirectory = arg;
+                        case 2: // generate
+                            switch (arg)
+                            {
+
+                                case "-s":
+                                    state = 21;
+                                    break;
+                                case "-o":
+                                    state = 22;
+                                    break;
+                                default:
+                                    throw new CommandLineSettingsInvalidException($"Unexpected argument '{arg}'");
+                            }
+                            break;
+
+                        case 12: //scaffold-s
+                            AnnotationDirectory = arg;
                             state = 1;
                             break;
-                        case 3:
+                        case 13: //scaffold-i
                             InputAssembly = arg;
                             state = 1;
+                            break;
+                        case 21: //generate-s
+                            AnnotationDirectory = arg;
+                            state = 2;
+                            break;
+                        case 22: //generate-o
+                            OutputDirectory = arg;
+                            state = 2;
                             break;
                         default:
                             throw new InvalidOperationException();
                     }
                 }
 
-                if (state == 2 || state == 3)
+                if (state > 10)
                     throw new CommandLineSettingsInvalidException("Missing argument.");
             }
             catch (Exception ex)
@@ -76,7 +103,8 @@ namespace code_annotations.Generator
         public bool ShowHelp { get; }
         public string Task { get; }
         public string InputAssembly { get; }
-        public string ScaffoldingDirectory { get; } = "out";
+        public string OutputDirectory { get; }
+        public string AnnotationDirectory { get; } = "out";
 
         public void AssertValid()
         {
