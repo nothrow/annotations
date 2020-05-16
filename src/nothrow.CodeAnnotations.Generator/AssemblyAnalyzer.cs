@@ -85,7 +85,7 @@ namespace code_annotations.Generator
             return false;
         }
 
-        private IEnumerable<string> GeneratePath(string ns)
+        private static IEnumerable<string> GeneratePath(string ns)
         {
             var split = ns.Split('.');
             var built = "";
@@ -103,7 +103,7 @@ namespace code_annotations.Generator
             }
         }
 
-        private static void Analyze(ModuleDefinition md, HashSet<TypeInformation> types)
+        private static void Analyze(ModuleDefinition md, ISet<TypeInformation> types)
         {
             foreach (var type in md.Types)
             {

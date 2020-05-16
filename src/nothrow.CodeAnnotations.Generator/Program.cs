@@ -73,17 +73,19 @@ namespace code_annotations.Generator
             var input = Path.GetFullPath(_commandLineSettings.AnnotationDirectory);
             var output = Path.GetFullPath(_commandLineSettings.OutputDirectory);
 
-            var typeinfoFile = Path.Combine(input, "typeinfo.json");
-            if (!File.Exists(typeinfoFile))
-                throw new CommandLineSettingsInvalidException($"There is no {typeinfoFile}. Is it really annotation directory?");
-
             Directory.CreateDirectory(output);
 
-            var types = JsonSerializer.Deserialize<NamespaceHierarchy>(File.ReadAllText(typeinfoFile));
+            var assemblies = new Dictionary<string, AnalyzedAssembly>();
+            foreach (var f in Directory.EnumerateFiles(input, "A_*.json"))
+            {
+                _logger.LogInformation("Loading assembly from {assembly}", f);
+                var asm = JsonSerializer.Deserialize<AnalyzedAssembly>(File.ReadAllText(f));
+                ReadNamespaceInformation(Path.Combine(input, asm.AssemblyName), asm.Namespaces, ImmutableArray<string>.Empty);
 
-            ReadNamespaceInformation(input, types, ImmutableArray<string>.Empty);
+                assemblies[asm.AssemblyName] = asm;
+            }
 
-            File.WriteAllText(Path.Combine(output, "db.json"), "window.annotationInfo = " + JsonSerializer.Serialize(types) + ";");
+            File.WriteAllText(Path.Combine(output, "db.js"), "window.annotationInfo = " + JsonSerializer.Serialize(assemblies) + ";");
 
             return 0;
         }
