@@ -1,46 +1,59 @@
-<html lang="en"><head>
+<html lang="en">
+
+<head>
     <!-- Required meta tags -->
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
-    
+
     <title>Code annotation browser</title>
-    
+
     <style>
-      .row.content {height: 550px}
-      .sidenav {
-        background-color: #f1f1f1;
-        height: 100%;
-    }
-    </style>
+        .row.content {
+            height: 550px
+        }
         
-    
-  </head>
-  <body>
+        .sidenav {
+            background-color: #f1f1f1;
+        }
+        
+        .namespaceList {
+            overflow-x: scroll;
+            display: block;
+        }
+        
+        .namespaceList li {}
+    </style>
 
-      <div class="container-fluid">
+
+</head>
+
+<body>
+
+    <div class="container-fluid">
         <div class="row content">
-          <div class="col-sm-3 sidenav hidden-xs">
-            <ul class="nav nav-pills nav-stacked" id="navigation">
-              <li class="active"><a href="#">ABC</a></li>
-            </ul><br>
-          </div>
-          <br>
-          
-          <div class="col-sm-9">
-            <div class="well" id="content">
-            </div>
-          </div>
-        </div>
-      </div>
+            <div class="col-sm-3 sidenav hidden-xs">
+                <ul class="list-group namespaceList" id="navigation">
 
-      <script src="./db.js"></script>
-      <script src="./browser.js"></script>
-      <script>
-        browser(annotationInfo, document.getElementById("navigation"), document.getElementById("content"), document.getElementById("search"));
-      </script>
-    
-  </body>
+                </ul><br>
+            </div>
+            <br>
+
+            <div class="col-sm-9">
+                <div class="well" id="content">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="./db.js"></script>
+    <script src="./browser.js"></script>
+    <script>
+        annotation_browser(annotationInfo, document.getElementById("navigation"), document.getElementById("content"), document.getElementById("search"));
+    </script>
+
+</body>
+
 </html>
