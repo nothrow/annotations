@@ -13,31 +13,51 @@ window.annotation_browser = function(data, navigation, content, search) {
         return '&nbsp;'.repeat(d);
     }
 
+    let types = {};
+
 
     for (const assembly in data) {
-        const li = document.createElement('li');
-        li.innerText = '🎁' + assembly;
-        // li.classList.add('list-group-item');
+        const li = cel('li', '🎁' + assembly);
         navigation.appendChild(li);
+
+        const append_anchor = function(text, link) {
+            const li = cel('li');
+            const clickable = cel('a', text);
+            clickable.href = link;
+            li.appendChild(clickable);
+            navigation.appendChild(li);
+        }
 
         const append_namespace = function(namespace, depth, prepend) {
 
             for (const key in namespace.Namespaces) {
                 const subns = namespace.Namespaces[key];
-                console.log(subns);
 
                 const fullName = prepend + '.' + subns.NamespaceName;
                 let ndepth = depth;
 
-                if (subns.Types.length > 0) {
-                    const li = cel('li');
-                    const clickable = cel('a', '📦' + make_depth(depth) + ' ' + fullName);
+                if (subns.Types.length > 0 || subns.Comment.length > 0) {
 
-                    clickable.href = '#!/' + assembly + '/' + fullName;
+                    const anchor = '#!/' + assembly + '/' + fullName;
+                    append_anchor('📦' + make_depth(depth) + ' ' + fullName, anchor);
 
-                    li.appendChild(clickable);
+                    types[anchor] = {
+                        strings: data[assembly].Strings,
+                        comment: subns.Comment
+                    };
 
-                    navigation.appendChild(li);
+
+                    subns.Types.forEach(element => {
+                        const elementName = fullName + '.' + element.Name;
+                        const anchor = '#!/' + assembly + '/' + elementName;
+                        append_anchor('#️⃣' + make_depth(depth + 1) + ' ' + elementName, anchor);
+
+                        types[anchor] = {
+                            strings: data[assembly].Strings,
+                            comment: element.Comment
+                        };
+                    });
+
                     ++ndepth;
                 }
 
@@ -45,11 +65,22 @@ window.annotation_browser = function(data, navigation, content, search) {
             }
         }
 
-
-
-
         append_namespace(data[assembly].Namespaces, 0, '');
-
-
     }
+
+    window.addEventListener('popstate', function(event) {
+        const comments = types[document.location.hash];
+        if (comments) {
+
+            content.innerText = '';
+
+            const c = cel('div');
+            comments.comment.forEach(comment => {
+                c.appendChild(cel('p', comments.strings[comment]));
+            });
+
+            content.appendChild(c);
+        }
+    });
+
 };

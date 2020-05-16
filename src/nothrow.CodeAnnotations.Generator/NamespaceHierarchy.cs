@@ -6,6 +6,7 @@ namespace code_annotations.Generator
     {
         public NamespaceHierarchy Namespaces { get; set; }
         public string AssemblyName { get; set; }
+        public List<string> Strings { get; set; } = new List<string>();
     }
 
     internal class NamespaceHierarchy
@@ -20,7 +21,7 @@ namespace code_annotations.Generator
         }
 
         public string NamespaceName { get; set; }
-        public string[] Comment { get; set; }
+        public int[] Comment { get; set; }
         public IReadOnlyCollection<NamespaceHierarchy> Namespaces { get; set; }
         public IReadOnlyCollection<TypeInformation> Types { get; set; }
     }

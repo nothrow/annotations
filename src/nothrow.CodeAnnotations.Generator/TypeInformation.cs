@@ -16,7 +16,7 @@ namespace code_annotations.Generator
 
         public string Namespace { get; set; }
         public string Name { get; set; }
-        public string[] Comment { get; set; }
+        public int[] Comment { get; set; }
 
         private sealed class NameEqualityComparer : IEqualityComparer<TypeInformation>
         {

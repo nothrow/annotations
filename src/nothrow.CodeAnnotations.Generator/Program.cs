@@ -6,9 +6,11 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Markdig;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -80,7 +82,7 @@ namespace code_annotations.Generator
             {
                 _logger.LogInformation("Loading assembly from {assembly}", f);
                 var asm = JsonSerializer.Deserialize<AnalyzedAssembly>(File.ReadAllText(f));
-                ReadNamespaceInformation(Path.Combine(input, asm.AssemblyName), asm.Namespaces, ImmutableArray<string>.Empty);
+                ReadNamespaceInformation(asm, Path.Combine(input, asm.AssemblyName), asm.Namespaces, ImmutableArray<int>.Empty);
 
                 assemblies[asm.AssemblyName] = asm;
             }
@@ -90,7 +92,29 @@ namespace code_annotations.Generator
             return 0;
         }
 
-        private void ReadNamespaceInformation(string input, NamespaceHierarchy types, ImmutableArray<string> comments)
+        private static string ProcessContent(string filePath, string heading, int level)
+        {
+            var s = new StringBuilder();
+            var f = File.ReadAllText(filePath);
+            s.AppendLine(heading);
+            switch (level)
+            {
+                case 1:
+                    s.AppendLine(new string('=', heading.Length));
+                    break;
+                case 2:
+                    s.AppendLine(new string('-', heading.Length));
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+
+            s.AppendLine(f);
+            return Markdown.ToHtml(s.ToString());
+        }
+
+        private void ReadNamespaceInformation(AnalyzedAssembly asm, string input, NamespaceHierarchy types,
+            ImmutableArray<int> comments)
         {
             _logger.LogInformation("Processing {namespace}", types.NamespaceName);
 
@@ -99,7 +123,9 @@ namespace code_annotations.Generator
             var nsInfo = new FileInfo(Path.Combine(path, "_namespace.md"));
             if (nsInfo.Exists && nsInfo.Length > 0)
             {
-                comments = comments.Add(File.ReadAllText(nsInfo.FullName));
+                asm.Strings.Add(ProcessContent(nsInfo.FullName, "📦 Namespace " + types.NamespaceName, 1));
+
+                comments = comments.Add(asm.Strings.Count - 1);
             }
 
             types.Comment = comments.ToArray();
@@ -110,7 +136,9 @@ namespace code_annotations.Generator
                 var fcomments = comments;
                 if (typeInfo.Exists && typeInfo.Length > 0)
                 {
-                    fcomments = fcomments.Add(File.ReadAllText(typeInfo.FullName));
+                    asm.Strings.Add(ProcessContent(typeInfo.FullName, "⃣ Type " + type.Name, 2));
+
+                    fcomments = fcomments.Add(asm.Strings.Count - 1);
                 }
 
                 type.Comment = fcomments.ToArray();
@@ -118,7 +146,7 @@ namespace code_annotations.Generator
 
             foreach (var ns in types.Namespaces)
             {
-                ReadNamespaceInformation(path, ns, comments);
+                ReadNamespaceInformation(asm, path, ns, comments);
             }
         }
 
@@ -139,8 +167,8 @@ namespace code_annotations.Generator
 
             GenerateNamespaceDirectories(Path.Combine(output, types.AssemblyName), types.Namespaces);
 
-            
-            File.WriteAllText(Path.Combine(output, $"A_{types.AssemblyName}.json"), JsonSerializer.Serialize(types, new JsonSerializerOptions {WriteIndented = true}));
+
+            File.WriteAllText(Path.Combine(output, $"A_{types.AssemblyName}.json"), JsonSerializer.Serialize(types, new JsonSerializerOptions { WriteIndented = true }));
 
             return 0;
         }
