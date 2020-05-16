@@ -2,6 +2,12 @@
 
 namespace code_annotations.Generator
 {
+    internal class AnalyzedAssembly
+    {
+        public NamespaceHierarchy Namespaces { get; set; }
+        public string AssemblyName { get; set; }
+    }
+
     internal class NamespaceHierarchy
     {
         public NamespaceHierarchy(){}

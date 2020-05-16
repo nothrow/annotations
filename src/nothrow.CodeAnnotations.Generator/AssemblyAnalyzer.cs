@@ -8,13 +8,13 @@ namespace code_annotations.Generator
     internal class AssemblyAnalyzer
     {
         private readonly string _input;
-        
+
         public AssemblyAnalyzer(string input)
         {
             _input = input;
         }
 
-        public NamespaceHierarchy Analyze()
+        public AnalyzedAssembly Analyze()
         {
             using var asm = AssemblyDefinition.ReadAssembly(_input, new ReaderParameters(ReadingMode.Deferred));
 
@@ -36,7 +36,12 @@ namespace code_annotations.Generator
             BuildTree(allNamespaces, types, rootNamespaces, rootTypes, "");
 
 
-            return new NamespaceHierarchy("", rootNamespaces, rootTypes);
+            return new
+                AnalyzedAssembly
+            {
+                Namespaces = new NamespaceHierarchy("", rootNamespaces, rootTypes),
+                AssemblyName = asm.Name.Name
+            };
         }
 
         private static string GetNamespaceLastPart(string ns)
@@ -44,7 +49,7 @@ namespace code_annotations.Generator
             return ns.Split('.').Last();
         }
 
-        private static void BuildTree(IReadOnlyDictionary<string, List<TypeInformation>> allNamespaces,  IReadOnlyCollection<TypeInformation> types, List<NamespaceHierarchy> rootNamespaces, List<TypeInformation> rootTypes, string currentNs)
+        private static void BuildTree(IReadOnlyDictionary<string, List<TypeInformation>> allNamespaces, IReadOnlyCollection<TypeInformation> types, List<NamespaceHierarchy> rootNamespaces, List<TypeInformation> rootTypes, string currentNs)
         {
             var subNses = allNamespaces.Keys.Where(x => IsDirectlyUnder(x, currentNs));
 
@@ -57,7 +62,7 @@ namespace code_annotations.Generator
                 rootNamespaces.Add(new NamespaceHierarchy(GetNamespaceLastPart(subNs), nh, ts));
             }
 
-            foreach(var type in types.Where(x => x.Namespace == currentNs))
+            foreach (var type in types.Where(x => x.Namespace == currentNs))
             {
                 rootTypes.Add(type);
             }

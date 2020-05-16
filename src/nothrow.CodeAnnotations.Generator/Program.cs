@@ -34,7 +34,7 @@ namespace code_annotations.Generator
             try
             {
                 _commandLineSettings.AssertValid();
-                if (_commandLineSettings.ShowHelp)
+                if (_commandLineSettings.ShowHelp || string.IsNullOrEmpty(_commandLineSettings.Task))
                     return ShowHelp();
 
 
@@ -135,10 +135,10 @@ namespace code_annotations.Generator
             var asm = new AssemblyAnalyzer(input);
             var types = asm.Analyze();
 
-            GenerateNamespaceDirectories(output, types);
+            GenerateNamespaceDirectories(Path.Combine(output, types.AssemblyName), types.Namespaces);
 
             
-            File.WriteAllText(Path.Combine(output, "typeinfo.json"), JsonSerializer.Serialize(types, new JsonSerializerOptions {WriteIndented = true}));
+            File.WriteAllText(Path.Combine(output, $"A_{types.AssemblyName}.json"), JsonSerializer.Serialize(types, new JsonSerializerOptions {WriteIndented = true}));
 
             return 0;
         }
