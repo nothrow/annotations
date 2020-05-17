@@ -96,18 +96,21 @@ namespace code_annotations.Generator
         {
             var s = new StringBuilder();
             var f = File.ReadAllText(filePath);
-            s.AppendLine(heading);
+            
             switch (level)
             {
                 case 1:
-                    s.AppendLine(new string('=', heading.Length));
+                    s.Append(new string('#', 3));
                     break;
                 case 2:
-                    s.AppendLine(new string('-', heading.Length));
+                    s.Append(new string('#', 4));
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
             }
+
+            s.Append(' ');
+            s.AppendLine(heading);
 
             s.AppendLine(f);
             return Markdown.ToHtml(s.ToString());
@@ -123,7 +126,7 @@ namespace code_annotations.Generator
             var nsInfo = new FileInfo(Path.Combine(path, "_namespace.md"));
             if (nsInfo.Exists && nsInfo.Length > 0)
             {
-                asm.Strings.Add(ProcessContent(nsInfo.FullName, "📦 Namespace " + types.NamespaceName, 1));
+                asm.Strings.Add(ProcessContent(nsInfo.FullName, "📂 Namespace " + types.NamespaceName, 1));
 
                 comments = comments.Add(asm.Strings.Count - 1);
             }
@@ -136,7 +139,7 @@ namespace code_annotations.Generator
                 var fcomments = comments;
                 if (typeInfo.Exists && typeInfo.Length > 0)
                 {
-                    asm.Strings.Add(ProcessContent(typeInfo.FullName, "⃣ Type " + type.Name, 2));
+                    asm.Strings.Add(ProcessContent(typeInfo.FullName, "📦 Type " + type.Name, 2));
 
                     fcomments = fcomments.Add(asm.Strings.Count - 1);
                 }
