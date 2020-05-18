@@ -7,6 +7,7 @@ using System.Linq;
 using System.Reflection;
 using System.Resources;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
@@ -66,10 +67,16 @@ namespace code_annotations.Generator
             return 0;
         }
 
-        private static void DumpResourceFile(string path, string filename)
+        private static void DumpResourceFile(string path, string filename, string replace = null)
         {
-            using var fs = new FileStream(Path.Combine(path,filename), FileMode.Create);
-            typeof(Program).Assembly.GetManifestResourceStream($"code_annotations.Generator.browser.{filename}").CopyTo(fs);
+            using var sr = new StreamReader(typeof(Program).Assembly.GetManifestResourceStream($"code_annotations.Generator.browser.{filename}"));
+            var text = sr.ReadToEnd();
+            if (replace != null)
+            {
+                text = text.Replace("%REPLACE%", replace);
+            }
+
+            File.WriteAllText(Path.Combine(path, filename), text);
         }
 
         private int Generate()
@@ -94,12 +101,18 @@ namespace code_annotations.Generator
                 assemblies[asm.AssemblyName] = asm;
             }
 
-            File.WriteAllText(Path.Combine(output, "db.js"), "window.annotationInfo = " + JsonSerializer.Serialize(assemblies) + ";");
+            var dbcon = "window.annotationInfo = " + JsonSerializer.Serialize(assemblies) + ";";
+            using var s = SHA1.Create();
+
+            var hash = Convert.ToBase64String(s.ComputeHash(Encoding.UTF8.GetBytes(dbcon)));
+
+
+            File.WriteAllText(Path.Combine(output, "db.js"), dbcon);
 
 
             _logger.LogInformation("Generating html/javascript browser");
             DumpResourceFile(output, "browser.js");
-            DumpResourceFile(output, "index.html");
+            DumpResourceFile(output, "index.html", hash);
 
             return 0;
         }
@@ -108,7 +121,7 @@ namespace code_annotations.Generator
         {
             var s = new StringBuilder();
             var f = File.ReadAllText(filePath);
-            
+
             switch (level)
             {
                 case 1:
