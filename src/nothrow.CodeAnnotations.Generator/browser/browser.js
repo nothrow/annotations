@@ -194,7 +194,7 @@ window.annotation_browser = function(data, navigation, content, search, search_c
         navigation.appendChild(filteredNavigationContent);
     }, 250));
 
-    window.addEventListener('popstate', function(event) {
+    const onPopState = function() {
         const comments = types[document.location.hash];
         if (comments) {
 
@@ -207,7 +207,11 @@ window.annotation_browser = function(data, navigation, content, search, search_c
 
             content.appendChild(c);
         }
-    });
+    };
+
+    window.addEventListener('popstate', onPopState);
+
+    onPopState();
 
     navigation.appendChild(navigationContent.cloneNode(true));
 

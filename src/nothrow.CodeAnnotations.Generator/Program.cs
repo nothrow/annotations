@@ -66,6 +66,12 @@ namespace code_annotations.Generator
             return 0;
         }
 
+        private static void DumpResourceFile(string path, string filename)
+        {
+            using var fs = new FileStream(Path.Combine(path,filename), FileMode.Create);
+            typeof(Program).Assembly.GetManifestResourceStream($"code_annotations.Generator.browser.{filename}").CopyTo(fs);
+        }
+
         private int Generate()
         {
             if (string.IsNullOrEmpty(_commandLineSettings.OutputDirectory))
@@ -92,11 +98,8 @@ namespace code_annotations.Generator
 
 
             _logger.LogInformation("Generating html/javascript browser");
-            using(var fs = new FileStream(Path.Combine(output, "browser.js"), FileMode.Create))
-                typeof(Program).Assembly.GetManifestResourceStream("code_annotations.Generator.browser.browser.js").CopyTo(fs);
-
-            using(var fs = new FileStream(Path.Combine(output, "index.html"), FileMode.Create))
-                typeof(Program).Assembly.GetManifestResourceStream("code_annotations.Generator.browser.index.html").CopyTo(fs);
+            DumpResourceFile(output, "browser.js");
+            DumpResourceFile(output, "index.html");
 
             return 0;
         }
