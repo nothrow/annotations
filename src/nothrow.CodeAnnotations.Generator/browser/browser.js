@@ -1,4 +1,4 @@
-window.annotation_browser = function(data, navigation, content, search) {
+window.annotation_browser = function(data, navigation, content, search, search_caption) {
 
 
     const debounce = function(func, wait) {
@@ -22,11 +22,11 @@ window.annotation_browser = function(data, navigation, content, search) {
             ret.innerHTML = text;
 
         return ret;
-    }
+    };
 
     const make_depth = function(d) {
         return '&nbsp;'.repeat(d);
-    }
+    };
 
     let types = {};
 
@@ -36,8 +36,22 @@ window.annotation_browser = function(data, navigation, content, search) {
         const li = cel('li', '🎁' + assembly);
         navigationContent.appendChild(li);
 
+        let parentIdStack = [];
+        const pushParent = function() {
+            parentIdStack.push(navigationContent.childNodes.length - 1);
+        };
+        const popParent = function() {
+            parentIdStack.pop();
+        }
+        pushParent();
+
+
         const append_anchor = function(text, link) {
             const li = cel('li');
+
+            li.dataset.parent = parentIdStack[parentIdStack.length - 1];
+            li.dataset.refCount = 0;
+
             const clickable = cel('a', text);
             clickable.href = link;
             li.appendChild(clickable);
@@ -47,6 +61,7 @@ window.annotation_browser = function(data, navigation, content, search) {
         const append_namespace = function(namespace, depth, prepend) {
 
             for (const key in namespace.Namespaces) {
+
                 const subns = namespace.Namespaces[key];
 
                 const fullName = prepend + '.' + subns.NamespaceName;
@@ -56,6 +71,9 @@ window.annotation_browser = function(data, navigation, content, search) {
 
                     const anchor = '#!/' + assembly + '/' + fullName;
                     append_anchor('📂' + make_depth(depth) + '&nbsp;' + fullName, anchor);
+
+                    pushParent();
+
 
                     types[anchor] = {
                         strings: data[assembly].Strings,
@@ -75,29 +93,103 @@ window.annotation_browser = function(data, navigation, content, search) {
                     });
 
                     ++ndepth;
+                    popParent();
                 }
 
+                pushParent();
+
                 append_namespace(subns, ndepth, fullName);
+
+                popParent();
             }
         }
 
         append_namespace(data[assembly].Namespaces, 0, '');
     }
 
-    search.addEventListener('input', debounce(function(event) {
+    const matches = function(needle, haystack) {
+
+        const splitTextByCapsAndDot = function(t) {
+            let rv = [];
+            let buf = '';
+            const flushBuffer = function() {
+                if (buf.length > 0)
+                    rv.push(buf);
+
+                buf = '';
+            };
+
+            for (let i = 0; i < t.length; i++) {
+                const ti = t[i];
+                if (ti === '.')
+                    flushBuffer();
+                else {
+                    if (ti.toUpperCase() === ti)
+                        flushBuffer();
+
+                    buf += ti;
+                }
+            }
+            flushBuffer();
+            return rv;
+        };
+        // behave in 'special' way for dots, and capitals, the same way as resharper does
+        // let's Met.Ent match also METadata...ENTity
+        // also Met.EntNa should match Metadata.EntityName
+        // ported from my code @ swql studio
+        if (haystack.toLowerCase().indexOf(needle) !== -1)
+            return true;
+
+        var filter = splitTextByCapsAndDot(needle);
+        var text = splitTextByCapsAndDot(haystack);
+
+        let textPivot = 0;
+        for (let filterPivot = 0; filterPivot < filter.length; filterPivot++) {
+            for (; textPivot <= text.length; textPivot++) {
+                if (textPivot == text.length)
+                    return false;
+                if (text[textPivot].toLowerCase().indexOf(filter[filterPivot].toLowerCase()) === 0)
+                    break;
+            }
+            textPivot++;
+        }
+        return true;
+
+    };
+
+    search.addEventListener('input', debounce(function() {
         navigation.innerText = '';
-        const searchFor = search.value.trim().toLowerCase();
+        const searchFor = search.value.trim();
         const filteredNavigationContent = navigationContent.cloneNode(true);
+
+        const totalNodes = filteredNavigationContent.childNodes.length;
+        let visibleNodes = filteredNavigationContent.childNodes.length;
+
         if (searchFor) {
             for (let i = filteredNavigationContent.childNodes.length - 1; i >= 0; i--) {
                 const li = filteredNavigationContent.childNodes[i];
-                const liText = li.innerText.toLowerCase();
+                const liText = li.innerText;
 
-                if (liText.indexOf(searchFor) === -1) {
+                const childVisible = parseInt(li.dataset.refCount) !== 0;
+                const matchesFilter = matches(searchFor, liText);
+
+                if (!childVisible && !matchesFilter) {
                     filteredNavigationContent.removeChild(li);
+                    visibleNodes--;
+                } else {
+
+                    if (!matchesFilter) {
+                        li.classList.add('visible-child');
+                    }
+                    if (li.dataset.parent) {
+                        const liParent = filteredNavigationContent.childNodes[li.dataset.parent];
+                        liParent.dataset.refCount = parseInt(liParent.dataset.refCount) + 1;
+                    }
                 }
             }
         }
+
+        search_caption.innerText = "Filter matches " + visibleNodes + "/" + totalNodes;
 
         navigation.appendChild(filteredNavigationContent);
     }, 250));
