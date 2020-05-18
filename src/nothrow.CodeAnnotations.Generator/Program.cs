@@ -5,6 +5,7 @@ using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Resources;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
@@ -88,6 +89,14 @@ namespace code_annotations.Generator
             }
 
             File.WriteAllText(Path.Combine(output, "db.js"), "window.annotationInfo = " + JsonSerializer.Serialize(assemblies) + ";");
+
+
+            _logger.LogInformation("Generating html/javascript browser");
+            using(var fs = new FileStream(Path.Combine(output, "browser.js"), FileMode.Create))
+                typeof(Program).Assembly.GetManifestResourceStream("code_annotations.Generator.browser.browser.js").CopyTo(fs);
+
+            using(var fs = new FileStream(Path.Combine(output, "index.html"), FileMode.Create))
+                typeof(Program).Assembly.GetManifestResourceStream("code_annotations.Generator.browser.index.html").CopyTo(fs);
 
             return 0;
         }
