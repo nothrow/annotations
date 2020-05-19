@@ -1,6 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
+using code_annotations.Generator.Models;
 using Mono.Cecil;
 
 namespace code_annotations.Generator
@@ -16,32 +16,35 @@ namespace code_annotations.Generator
 
         public AnalyzedAssembly Analyze()
         {
-            using var asm = AssemblyDefinition.ReadAssembly(_input, new ReaderParameters(ReadingMode.Deferred));
+            using AssemblyDefinition asm =
+                AssemblyDefinition.ReadAssembly(_input, new ReaderParameters(ReadingMode.Deferred));
 
-            var types = new HashSet<TypeInformation>(TypeInformation.NameComparer);
+            HashSet<TypeInformation> types = new HashSet<TypeInformation>(TypeInformation.NameComparer);
 
-            foreach (var module in asm.Modules)
+            foreach (ModuleDefinition module in asm.Modules)
+            {
                 Analyze(module, types);
+            }
 
-            var allNamespaces = types.Select(x => x.Namespace).Distinct().SelectMany(GeneratePath).Distinct().ToDictionary(x => x, _ => new List<TypeInformation>());
+            Dictionary<string, List<TypeInformation>> allNamespaces = types.Select(x => x.Namespace).Distinct()
+                .SelectMany(GeneratePath).Distinct().ToDictionary(x => x, _ => new List<TypeInformation>());
 
-            foreach (var type in types)
+            foreach (TypeInformation type in types)
             {
                 allNamespaces[type.Namespace].Add(type);
             }
 
-            var rootNamespaces = new List<NamespaceHierarchy>();
-            var rootTypes = new List<TypeInformation>();
+            List<NamespaceHierarchy> rootNamespaces = new List<NamespaceHierarchy>();
+            List<TypeInformation> rootTypes = new List<TypeInformation>();
 
             BuildTree(allNamespaces, types, rootNamespaces, rootTypes, "");
 
 
             return new
                 AnalyzedAssembly
-            {
-                Namespaces = new NamespaceHierarchy("", rootNamespaces, rootTypes),
-                AssemblyName = asm.Name.Name
-            };
+                {
+                    Namespaces = new NamespaceHierarchy("", rootNamespaces, rootTypes), AssemblyName = asm.Name.Name
+                };
         }
 
         private static string GetNamespaceLastPart(string ns)
@@ -49,20 +52,22 @@ namespace code_annotations.Generator
             return ns.Split('.').Last();
         }
 
-        private static void BuildTree(IReadOnlyDictionary<string, List<TypeInformation>> allNamespaces, IReadOnlyCollection<TypeInformation> types, List<NamespaceHierarchy> rootNamespaces, List<TypeInformation> rootTypes, string currentNs)
+        private static void BuildTree(IReadOnlyDictionary<string, List<TypeInformation>> allNamespaces,
+            IReadOnlyCollection<TypeInformation> types, List<NamespaceHierarchy> rootNamespaces,
+            List<TypeInformation> rootTypes, string currentNs)
         {
-            var subNses = allNamespaces.Keys.Where(x => IsDirectlyUnder(x, currentNs));
+            IEnumerable<string> subNses = allNamespaces.Keys.Where(x => IsDirectlyUnder(x, currentNs));
 
-            foreach (var subNs in subNses)
+            foreach (string subNs in subNses)
             {
-                var nh = new List<NamespaceHierarchy>();
-                var ts = new List<TypeInformation>();
+                List<NamespaceHierarchy> nh = new List<NamespaceHierarchy>();
+                List<TypeInformation> ts = new List<TypeInformation>();
 
                 BuildTree(allNamespaces, types, nh, ts, subNs);
                 rootNamespaces.Add(new NamespaceHierarchy(GetNamespaceLastPart(subNs), nh, ts));
             }
 
-            foreach (var type in types.Where(x => x.Namespace == currentNs))
+            foreach (TypeInformation type in types.Where(x => x.Namespace == currentNs))
             {
                 rootTypes.Add(type);
             }
@@ -71,7 +76,10 @@ namespace code_annotations.Generator
         private static int Dots(string s)
         {
             if (string.IsNullOrEmpty(s))
+            {
                 return -1;
+            }
+
             return s.Count(x => x == '.');
         }
 
@@ -79,7 +87,7 @@ namespace code_annotations.Generator
         {
             if (s.StartsWith(currentNs))
             {
-                return (Dots(s) == Dots(currentNs) + 1);
+                return Dots(s) == Dots(currentNs) + 1;
             }
 
             return false;
@@ -87,13 +95,15 @@ namespace code_annotations.Generator
 
         private static IEnumerable<string> GeneratePath(string ns)
         {
-            var split = ns.Split('.');
-            var built = "";
+            string[] split = ns.Split('.');
+            string built = "";
             yield return "";
-            foreach (var s in split)
+            foreach (string s in split)
             {
                 if (built.Length == 0)
+                {
                     built = s;
+                }
                 else
                 {
                     built += "." + s;
@@ -105,7 +115,7 @@ namespace code_annotations.Generator
 
         private static void Analyze(ModuleDefinition md, ISet<TypeInformation> types)
         {
-            foreach (var type in md.Types)
+            foreach (TypeDefinition type in md.Types)
             {
                 types.Add(new TypeInformation(type.Namespace, type.Name));
             }

@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace code_annotations.Generator
+namespace code_annotations.Generator.Models
 {
     internal class TypeInformation
     {

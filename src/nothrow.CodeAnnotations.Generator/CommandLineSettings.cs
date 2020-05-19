@@ -5,7 +5,8 @@ namespace code_annotations.Generator
 {
     internal class CommandLineSettings
     {
-        
+        private readonly Exception _valid;
+
         public CommandLineSettings(string[] args)
         {
             try
@@ -13,7 +14,7 @@ namespace code_annotations.Generator
                 int state = 0;
                 for (int i = 0; i < args.Length; i++)
                 {
-                    var arg = args[i];
+                    string arg = args[i];
                     switch (state)
                     {
                         case 0:
@@ -42,7 +43,6 @@ namespace code_annotations.Generator
                         case 1: // scaffold
                             switch (arg)
                             {
-
                                 case "-s":
                                     state = 12;
                                     break;
@@ -52,11 +52,11 @@ namespace code_annotations.Generator
                                 default:
                                     throw new CommandLineSettingsInvalidException($"Unexpected argument '{arg}'");
                             }
+
                             break;
                         case 2: // generate
                             switch (arg)
                             {
-
                                 case "-s":
                                     state = 21;
                                     break;
@@ -66,6 +66,7 @@ namespace code_annotations.Generator
                                 default:
                                     throw new CommandLineSettingsInvalidException($"Unexpected argument '{arg}'");
                             }
+
                             break;
 
                         case 12: //scaffold-s
@@ -90,15 +91,15 @@ namespace code_annotations.Generator
                 }
 
                 if (state > 10)
+                {
                     throw new CommandLineSettingsInvalidException("Missing argument.");
+                }
             }
             catch (Exception ex)
             {
                 _valid = ex;
             }
         }
-
-        private readonly Exception _valid;
 
         public bool ShowHelp { get; }
         public string Task { get; }
@@ -109,7 +110,9 @@ namespace code_annotations.Generator
         public void AssertValid()
         {
             if (_valid != null)
+            {
                 ExceptionDispatchInfo.Capture(_valid).Throw();
+            }
         }
     }
 }

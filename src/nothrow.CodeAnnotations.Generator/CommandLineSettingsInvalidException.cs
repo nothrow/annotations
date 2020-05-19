@@ -2,7 +2,7 @@
 
 namespace code_annotations.Generator
 {
-    class CommandLineSettingsInvalidException : ApplicationException
+    internal class CommandLineSettingsInvalidException : ApplicationException
     {
         public CommandLineSettingsInvalidException(string message)
             : base(message)
