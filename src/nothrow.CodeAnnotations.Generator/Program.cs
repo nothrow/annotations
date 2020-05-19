@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using code_annotations.Generator.Models;
 using Markdig;
 using Microsoft.Extensions.Configuration;
@@ -93,13 +94,14 @@ namespace code_annotations.Generator
 
             Directory.CreateDirectory(output);
 
-            Dictionary<string, AnalyzedAssembly> assemblies = new Dictionary<string, AnalyzedAssembly>();
+            var assemblies = new Dictionary<string, AnalyzedAssembly>();
+
             foreach (string f in Directory.EnumerateFiles(input, "A_*.json"))
             {
                 _logger.LogInformation("Loading assembly from {assembly}", f);
                 AnalyzedAssembly asm = JsonSerializer.Deserialize<AnalyzedAssembly>(File.ReadAllText(f));
                 ReadNamespaceInformation(asm, Path.Combine(input, asm.AssemblyName), asm.Namespaces,
-                    ImmutableArray<int>.Empty);
+                    ImmutableArray<int>.Empty, null);
 
                 assemblies[asm.AssemblyName] = asm;
             }
@@ -126,10 +128,13 @@ namespace code_annotations.Generator
             return 0;
         }
 
-        private static string ProcessContent(string filePath, string heading, int level)
+        private static readonly Regex _tagsRegex = new Regex(@"#(\w*([0-9a-zA-Z]|-)+\w*[0-9a-zA-Z])");
+        private static TextWithTags ProcessContent(string filePath, string heading, int level)
         {
             StringBuilder s = new StringBuilder();
             string f = File.ReadAllText(filePath);
+
+
 
             switch (level)
             {
@@ -147,24 +152,31 @@ namespace code_annotations.Generator
             s.AppendLine(heading);
 
             s.AppendLine(f);
-            return Markdown.ToHtml(s.ToString());
+            return new TextWithTags
+            {
+                String = Markdown.ToHtml(s.ToString()),
+                Tags = _tagsRegex.Matches(f).Select(m => m.Groups[0].Value).ToList()
+            };
         }
 
-        private void ReadNamespaceInformation(AnalyzedAssembly asm, string input, NamespaceHierarchy types,
-            ImmutableArray<int> comments)
+        private void ReadNamespaceInformation(AnalyzedAssembly asm, string input,
+            NamespaceHierarchy types,
+            ImmutableArray<int> comments, string parent)
         {
-            _logger.LogInformation("Processing {namespace}", types.NamespaceName);
+            var fullNamespace = parent != null ? parent + "." + types.NamespaceName : types.NamespaceName;
+
+            _logger.LogInformation("Processing {namespace}", fullNamespace);
 
             string path = Path.Combine(input, types.NamespaceName);
 
             FileInfo nsInfo = new FileInfo(Path.Combine(path, "_namespace.md"));
             if (nsInfo.Exists && nsInfo.Length > 0)
             {
-                asm.Strings.Add(ProcessContent(nsInfo.FullName, "📂 Namespace " + types.NamespaceName, 1));
+                asm.Strings.Add(ProcessContent(nsInfo.FullName, "📂 Namespace " + fullNamespace, 1));
 
                 comments = comments.Add(asm.Strings.Count - 1);
             }
-
+            
             types.Comment = comments.ToArray();
 
             foreach (TypeInformation type in types.Types)
@@ -173,9 +185,10 @@ namespace code_annotations.Generator
                 ImmutableArray<int> fcomments = comments;
                 if (typeInfo.Exists && typeInfo.Length > 0)
                 {
-                    asm.Strings.Add(ProcessContent(typeInfo.FullName, "📦 Type " + type.Name, 2));
+                    asm.Strings.Add(ProcessContent(typeInfo.FullName, "📦 Type " + fullNamespace + "." + type.Name, 2));
 
                     fcomments = fcomments.Add(asm.Strings.Count - 1);
+                    
                 }
 
                 type.Comment = fcomments.ToArray();
@@ -183,7 +196,7 @@ namespace code_annotations.Generator
 
             foreach (NamespaceHierarchy ns in types.Namespaces)
             {
-                ReadNamespaceInformation(asm, path, ns, comments);
+                ReadNamespaceInformation(asm, path, ns, comments, fullNamespace);
             }
         }
 
@@ -211,7 +224,7 @@ namespace code_annotations.Generator
 
 
             File.WriteAllText(Path.Combine(output, $"A_{types.AssemblyName}.json"),
-                JsonSerializer.Serialize(types, new JsonSerializerOptions {WriteIndented = true}));
+                JsonSerializer.Serialize(types, new JsonSerializerOptions { WriteIndented = true }));
             DumpResourceFile(output, "README.md");
 
             return 0;
@@ -310,7 +323,8 @@ namespace code_annotations.Generator
 
             ServiceProvider serviceProvider = serviceBuilder.BuildServiceProvider(new ServiceProviderOptions
             {
-                ValidateOnBuild = true, ValidateScopes = true
+                ValidateOnBuild = true,
+                ValidateScopes = true
             });
             return serviceProvider;
         }

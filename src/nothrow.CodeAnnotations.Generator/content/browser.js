@@ -1,13 +1,14 @@
 window.annotation_browser = function(data, divs) {
 
-    const { navigation, content, search, search_caption, generatedOn, version } = divs;
+    const { navigation, content, search, search_caption, generatedOn, version, tag_list } = divs;
     const assemblies = data.Assemblies;
 
     generatedOn.innerText = data.GeneratedOn;
     version.innerText = data.Version;
 
+    let allTags = {};
 
-    const debounce = function(func, wait) {
+    const debounce = (func, wait) => {
         var timeout;
         return function() {
             var context = this,
@@ -21,7 +22,7 @@ window.annotation_browser = function(data, divs) {
         };
     };
 
-    const cel = function(name, text) {
+    const cel = (name, text) => {
         const ret = document.createElement(name);
 
         if (text)
@@ -49,6 +50,21 @@ window.annotation_browser = function(data, divs) {
         const popParent = function() {
             parentIdStack.pop();
         }
+
+
+        const readTags = (comments) => {
+            comments.forEach(comment => {
+                assemblies[assembly].Strings[comment].Tags.forEach(tag => {
+                    if (tag in allTags)
+                        allTags[tag]++;
+                    else
+                        allTags[tag] = 1;
+
+                });
+            });
+        }
+
+
         pushParent();
 
 
@@ -57,6 +73,7 @@ window.annotation_browser = function(data, divs) {
 
             li.dataset.parent = parentIdStack[parentIdStack.length - 1];
             li.dataset.refCount = 0;
+            li.dataset.anchor = link;
 
             const clickable = cel('a', text);
             clickable.href = link;
@@ -71,6 +88,7 @@ window.annotation_browser = function(data, divs) {
                 const subns = namespace.Namespaces[key];
 
                 const fullName = prepend + '.' + subns.NamespaceName;
+                let doPop = () => {};
                 let ndepth = depth;
 
                 if (subns.Types.length > 0 || subns.Comment.length > 0) {
@@ -79,7 +97,9 @@ window.annotation_browser = function(data, divs) {
                     append_anchor('📂' + make_depth(depth) + '&nbsp;' + fullName, anchor);
 
                     pushParent();
+                    doPop = popParent;
 
+                    readTags(subns.Comment);
 
                     types[anchor] = {
                         strings: assemblies[assembly].Strings,
@@ -92,6 +112,8 @@ window.annotation_browser = function(data, divs) {
                         const anchor = '#!/' + assembly + '/' + elementName;
                         append_anchor('📦' + make_depth(depth + 1) + '&nbsp;' + elementName, anchor);
 
+                        readTags(element.Comment);
+
                         types[anchor] = {
                             strings: assemblies[assembly].Strings,
                             comment: element.Comment
@@ -99,21 +121,35 @@ window.annotation_browser = function(data, divs) {
                     });
 
                     ++ndepth;
-                    popParent();
                 }
-
-                pushParent();
 
                 append_namespace(subns, ndepth, fullName);
 
-                popParent();
+                doPop();
             }
         }
 
         append_namespace(assemblies[assembly].Namespaces, 0, '');
     }
 
-    const matches = function(needle, haystack) {
+    const matches = function(needle, haystack, hayProps) {
+
+        if (needle[0] === '#') // search for tag
+        {
+            if (!hayProps)
+                return false;
+
+            for (let comment in hayProps.comment) {
+                const tags = hayProps.strings[hayProps.comment[comment]].Tags;
+                for (let tag in tags) {
+                    if (tags[tag] === needle)
+                        return true;
+                }
+            }
+
+            return false;
+        }
+
 
         const splitTextByCapsAndDot = function(t) {
             let rv = [];
@@ -163,7 +199,7 @@ window.annotation_browser = function(data, divs) {
 
     };
 
-    search.addEventListener('input', debounce(function() {
+    search.addEventListener('input', debounce(() => {
         navigation.innerText = '';
         const searchFor = search.value.trim();
         const filteredNavigationContent = navigationContent.cloneNode(true);
@@ -173,15 +209,18 @@ window.annotation_browser = function(data, divs) {
 
         if (searchFor) {
             for (let i = filteredNavigationContent.childNodes.length - 1; i >= 0; i--) {
+
                 const li = filteredNavigationContent.childNodes[i];
                 const liText = li.innerText;
 
                 const childVisible = parseInt(li.dataset.refCount) !== 0;
-                const matchesFilter = matches(searchFor, liText);
+                const matchesFilter = matches(searchFor, liText, types[li.dataset.anchor]);
+
+                if (!matchesFilter)
+                    visibleNodes--;
 
                 if (!childVisible && !matchesFilter) {
                     filteredNavigationContent.removeChild(li);
-                    visibleNodes--;
                 } else {
 
                     if (!matchesFilter) {
@@ -208,7 +247,7 @@ window.annotation_browser = function(data, divs) {
 
             const c = cel('div');
             comments.comment.forEach(comment => {
-                c.appendChild(cel('p', comments.strings[comment]));
+                c.appendChild(cel('p', comments.strings[comment].String));
             });
 
             content.appendChild(c);
@@ -220,5 +259,35 @@ window.annotation_browser = function(data, divs) {
     onPopState();
 
     navigation.appendChild(navigationContent.cloneNode(true));
+
+
+
+    (function() {
+        const tagUl = cel('ul');
+
+        for (const tag in allTags) {
+            const li = cel('li');
+            const a = cel('a', tag + '(' + allTags[tag] + ')');
+            a.href = '#';
+
+            a.addEventListener('click', function() {
+                search.value = tag;
+
+                search.dispatchEvent(new Event('input', {
+                    bubbles: true,
+                    cancelable: true,
+                }));
+
+            });
+
+            li.appendChild(a);
+            tagUl.appendChild(li);
+        }
+
+        tag_list.appendChild(tagUl);
+    })();
+
+
+
 
 };

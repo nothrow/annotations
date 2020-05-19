@@ -18,6 +18,7 @@
         .sidenav {
             background-color: #f1f1f1;
         }
+        
         .header {
             background-color: #f1f1f1;
             text-align: right;
@@ -50,7 +51,7 @@
 
     <div class="container-fluid">
         <div class="col-sm-12 header">Geenrated on <span id="generatedOn"></span> by <a href="https://github.com/nothrow/annotations">Nothrow's annotations</a>, version <span id="version"></span></div>
-    
+
         <div class="col-sm-3 sidenav hidden-xs">
             <div>
                 <input class="form-control" type="text" placeholder="Search" aria-label="Search" id="search">
@@ -59,6 +60,11 @@
                 <div id="search_caption"></div>
             </div>
             <br />
+
+            <div id="tag_list" class="namespaceList">
+
+            </div>
+
             <div id="navigation" class="namespaceList">
 
             </div>
@@ -68,15 +74,15 @@
             <div class="well" id="content">
             </div>
         </div>
-    
+
     </div>
 
     <script src="./db.js?%REPLACE%"></script>
     <script src="./browser.js"></script>
     <script>
-        annotation_browser(annotationInfo,
-        {
+        annotation_browser(annotationInfo, {
             navigation: document.getElementById("navigation"),
+            tag_list: document.getElementById("tag_list"),
             content: document.getElementById("content"),
             search: document.getElementById("search"),
             search_caption: document.getElementById("search_caption"),

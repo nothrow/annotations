@@ -6,6 +6,6 @@ namespace code_annotations.Generator.Models
     {
         public NamespaceHierarchy Namespaces { get; set; }
         public string AssemblyName { get; set; }
-        public List<string> Strings { get; set; } = new List<string>();
+        public List<TextWithTags> Strings { get; set; } = new List<TextWithTags>();
     }
 }
