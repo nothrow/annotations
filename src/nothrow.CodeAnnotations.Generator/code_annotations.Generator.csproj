@@ -12,8 +12,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="browser\browser.js" />
-    <EmbeddedResource Include="browser\index.html" />
+    <EmbeddedResource Include="content\browser.js" />
+    <EmbeddedResource Include="content\index.html" />
+    <EmbeddedResource Include="content\README.md" />
   </ItemGroup>
   
   <ItemGroup>

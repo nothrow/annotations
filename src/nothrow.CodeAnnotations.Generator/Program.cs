@@ -69,7 +69,7 @@ namespace code_annotations.Generator
 
         private static void DumpResourceFile(string path, string filename, string replace = null)
         {
-            using var sr = new StreamReader(typeof(Program).Assembly.GetManifestResourceStream($"code_annotations.Generator.browser.{filename}"));
+            using var sr = new StreamReader(typeof(Program).Assembly.GetManifestResourceStream($"code_annotations.Generator.content.{filename}"));
             var text = sr.ReadToEnd();
             if (replace != null)
             {
@@ -112,6 +112,7 @@ namespace code_annotations.Generator
 
             _logger.LogInformation("Generating html/javascript browser");
             DumpResourceFile(output, "browser.js");
+            DumpResourceFile(output, "README.md");
             DumpResourceFile(output, "index.html", hash);
 
             return 0;
@@ -197,6 +198,7 @@ namespace code_annotations.Generator
 
 
             File.WriteAllText(Path.Combine(output, $"A_{types.AssemblyName}.json"), JsonSerializer.Serialize(types, new JsonSerializerOptions { WriteIndented = true }));
+            DumpResourceFile(output, "README.md");
 
             return 0;
         }
