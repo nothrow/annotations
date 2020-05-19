@@ -8,9 +8,19 @@
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>dotnet-annotate</ToolCommandName>
     <PackageOutputPath>./nupkg</PackageOutputPath>
-    <Version>0.8.0</Version>
+    
+    <Version>0.8.1</Version>
     <Authors>Vit Tauer &lt;vita@nothrow.cz&gt;</Authors>
     <Product>nothrow annotate</Product>
+    
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    
+    <PackageTags>dotnet tool;annotations</PackageTags>
+    <PackageProjectUrl>https://github.com/nothrow/annotations</PackageProjectUrl>
+    <Description>This tool serves as a generator for HTML+(vanilla) JS searchable code documentation.</Description>
+    <RepositoryUrl>git@github.com:nothrow/annotations.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    
 
   </PropertyGroup>
 
