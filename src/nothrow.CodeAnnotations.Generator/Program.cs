@@ -101,7 +101,11 @@ namespace code_annotations.Generator
                 assemblies[asm.AssemblyName] = asm;
             }
 
-            var dbcon = "window.annotationInfo = " + JsonSerializer.Serialize(assemblies) + ";";
+            var dbcon = "window.annotationInfo = " + JsonSerializer.Serialize(new BrowserDatabase {
+                Assemblies = assemblies,
+                GeneratedOn = DateTime.Now.ToString(),
+                Version = Assembly.GetExecutingAssembly().GetName().Version.ToString()
+            }) + ";";
             using var s = SHA1.Create();
 
             var hash = Convert.ToBase64String(s.ComputeHash(Encoding.UTF8.GetBytes(dbcon)));

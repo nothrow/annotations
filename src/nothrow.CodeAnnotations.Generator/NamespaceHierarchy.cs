@@ -2,6 +2,13 @@
 
 namespace code_annotations.Generator
 {
+    internal class BrowserDatabase
+    {
+        public Dictionary<string, AnalyzedAssembly> Assemblies { get; set; }
+        public string GeneratedOn { get; set; }
+        public string Version { get; set; }
+    }
+
     internal class AnalyzedAssembly
     {
         public NamespaceHierarchy Namespaces { get; set; }

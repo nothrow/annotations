@@ -1,4 +1,10 @@
-window.annotation_browser = function(data, navigation, content, search, search_caption) {
+window.annotation_browser = function(data, divs) {
+
+    const { navigation, content, search, search_caption, generatedOn, version } = divs;
+    const assemblies = data.Assemblies;
+
+    generatedOn.innerText = data.GeneratedOn;
+    version.innerText = data.Version;
 
 
     const debounce = function(func, wait) {
@@ -32,7 +38,7 @@ window.annotation_browser = function(data, navigation, content, search, search_c
 
     const navigationContent = cel('ul');
 
-    for (const assembly in data) {
+    for (const assembly in assemblies) {
         const li = cel('li', '🎁' + assembly);
         navigationContent.appendChild(li);
 
@@ -76,7 +82,7 @@ window.annotation_browser = function(data, navigation, content, search, search_c
 
 
                     types[anchor] = {
-                        strings: data[assembly].Strings,
+                        strings: assemblies[assembly].Strings,
                         comment: subns.Comment
                     };
 
@@ -87,7 +93,7 @@ window.annotation_browser = function(data, navigation, content, search, search_c
                         append_anchor('📦' + make_depth(depth + 1) + '&nbsp;' + elementName, anchor);
 
                         types[anchor] = {
-                            strings: data[assembly].Strings,
+                            strings: assemblies[assembly].Strings,
                             comment: element.Comment
                         };
                     });
@@ -104,7 +110,7 @@ window.annotation_browser = function(data, navigation, content, search, search_c
             }
         }
 
-        append_namespace(data[assembly].Namespaces, 0, '');
+        append_namespace(assemblies[assembly].Namespaces, 0, '');
     }
 
     const matches = function(needle, haystack) {

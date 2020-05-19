@@ -8,6 +8,9 @@
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>dotnet-annotate</ToolCommandName>
     <PackageOutputPath>./nupkg</PackageOutputPath>
+    <Version>0.8.0</Version>
+    <Authors>Vit Tauer &lt;vita@nothrow.cz&gt;</Authors>
+    <Product>nothrow annotate</Product>
 
   </PropertyGroup>
 
